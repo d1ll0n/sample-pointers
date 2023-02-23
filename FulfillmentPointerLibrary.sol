@@ -8,42 +8,59 @@ type FulfillmentPointer is uint256;
 using FulfillmentPointerLibrary for FulfillmentPointer global;
 
 /// @dev Library for resolving pointers of a Fulfillment
+/// struct Fulfillment {
+///   FulfillmentComponent[] offerComponents;
+///   FulfillmentComponent[] considerationComponents;
+/// }
 library FulfillmentPointerLibrary {
   uint256 internal constant considerationComponentsOffset = 0x20;
   uint256 internal constant HeadSize = 0x40;
 
+  /// @dev Convert a `MemoryPointer` to a `FulfillmentPointer`.
+  ///      This adds `FulfillmentPointerLibrary` functions as members of the pointer
   function wrap(MemoryPointer ptr) internal pure returns (FulfillmentPointer) {
     return FulfillmentPointer.wrap(MemoryPointer.unwrap(ptr));
   }
 
+  /// @dev Convert a `FulfillmentPointer` back into a `MemoryPointer`.
   function unwrap(FulfillmentPointer ptr) internal pure returns (MemoryPointer) {
     return MemoryPointer.wrap(FulfillmentPointer.unwrap(ptr));
   }
 
+  /// @dev Resolve the pointer to the head of `offerComponents` in memory.
+  ///      This points to the offset of the item's data relative to `ptr`
   function offerComponentsHead(FulfillmentPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap();
   }
 
+  /// @dev Resolve the `DynArrayFulfillmentComponentPointer` pointing to the data buffer of `offerComponents`
   function offerComponentsData(FulfillmentPointer ptr) internal pure returns (DynArrayFulfillmentComponentPointer) {
     return DynArrayFulfillmentComponentPointerLibrary.wrap(ptr.unwrap().offset(offerComponentsHead(ptr).readUint256()));
   }
 
+  /// @dev Add dirty bits to the head for `offerComponents` (offset relative to parent).
   function addDirtyBitsToOfferComponentsOffset(FulfillmentPointer ptr) internal pure {
     offerComponentsHead(ptr).addDirtyBitsBefore(224);
   }
 
+  /// @dev Resolve the pointer to the head of `considerationComponents` in memory.
+  ///      This points to the offset of the item's data relative to `ptr`
   function considerationComponentsHead(FulfillmentPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap().offset(considerationComponentsOffset);
   }
 
+  /// @dev Resolve the `DynArrayFulfillmentComponentPointer` pointing to the data buffer of `considerationComponents`
   function considerationComponentsData(FulfillmentPointer ptr) internal pure returns (DynArrayFulfillmentComponentPointer) {
     return DynArrayFulfillmentComponentPointerLibrary.wrap(ptr.unwrap().offset(considerationComponentsHead(ptr).readUint256()));
   }
 
+  /// @dev Add dirty bits to the head for `considerationComponents` (offset relative to parent).
   function addDirtyBitsToConsiderationComponentsOffset(FulfillmentPointer ptr) internal pure {
     considerationComponentsHead(ptr).addDirtyBitsBefore(224);
   }
 
+  /// @dev Resolve the pointer to the tail segment of the struct.
+  ///      This is the beginning of the dynamically encoded data.
   function tail(FulfillmentPointer ptr) internal pure returns (MemoryPointer) {
     return ptr.unwrap().offset(HeadSize);
   }
